@@ -1,7 +1,8 @@
 import struct
 import os
 import time
-from Components.config import config, ConfigSelection, ConfigYesNo, ConfigSubsection, ConfigText, ConfigCECAddress, ConfigLocations, ConfigDirectory, ConfigNothing, ConfigIP
+import urllib2
+from Components.config import config, ConfigSelection, ConfigYesNo, ConfigSubsection, ConfigText, ConfigCECAddress, ConfigLocations, ConfigDirectory, ConfigNothing, ConfigIP, ConfigInteger
 from Components.Console import Console
 from enigma import eHdmiCEC, eActionMap
 from Tools.StbHardware import getFPWasTimerWakeup
@@ -105,6 +106,12 @@ config.hdmicec.next_boxes_detect = ConfigYesNo(default=False)
 config.hdmicec.sourceactive_zaptimers = ConfigYesNo(default=False)
 config.hdmicec.ethernet_pc_used = ConfigYesNo(default=False)
 config.hdmicec.pc_ip = ConfigIP(default = [192,168,3,7])
+config.hdmicec.ethernet_box1 = ConfigYesNo(default=False)
+config.hdmicec.ip1 = ConfigIP(default = [192,168,3,41])
+config.hdmicec.port1 = ConfigInteger(default=80, limits=(1, 65555))
+config.hdmicec.ethernet_box2 = ConfigYesNo(default=False)
+config.hdmicec.ip2 = ConfigIP(default = [192,168,3,43])
+config.hdmicec.port2 = ConfigInteger(default=80, limits=(1, 65555))
 
 
 class HdmiCec:
@@ -126,6 +133,9 @@ class HdmiCec:
 
 		self.delayEthernetPC = eTimer()
 		self.delayEthernetPC.timeout.get().append(self.ethernetPCActive)
+
+		self.delayEthernetBox = eTimer()
+		self.delayEthernetBox.timeout.get().append(self.ethernetBoxActive)
 
 		self.delay = eTimer()
 		self.delay.timeout.get().append(self.sendStandbyMessages)
@@ -308,6 +318,8 @@ class HdmiCec:
 	def secondBoxActive(self):
 		if config.hdmicec.ethernet_pc_used.value:
 			self.delayEthernetPC.start(100, True)
+		if config.hdmicec.ethernet_box1.value or config.hdmicec.ethernet_box2.value:
+			self.delayEthernetBox.start(200, True)
 		self.sendMessage(0, "getpowerstatus")
 
 	def ethernetPCActive(self):
@@ -319,6 +331,23 @@ class HdmiCec:
 			ip = "%d.%d.%d.%d" % tuple(config.hdmicec.pc_ip.value)
 			cmd = "ping -c 1 -W 1 %s >/dev/null 2>&1" % ip
 			Console().ePopen(cmd, result)
+
+	def ethernetBoxActive(self):
+		def getEthernetBoxActive(ip, port):
+			ip = "%d.%d.%d.%d" % tuple(ip)
+			try:
+				response = urllib2.urlopen("http://%s:%d/web/powerstate" % (ip, port))
+				for line in response:
+					if 'false' in line:
+						self.useStandby = False
+						print("[HDMI-CEC] powered box on %s was found over lan" % ip)
+			except Exception as e:
+				print("[HDMI-CEC] error detect box over lan", e)
+
+		if config.hdmicec.ethernet_box1.value:
+			getEthernetBoxActive(config.hdmicec.ip1.value, config.hdmicec.port1.value)
+		if config.hdmicec.ethernet_box2.value:
+			getEthernetBoxActive(config.hdmicec.ip2.value, config.hdmicec.port2.value)
 
 	def onLeaveStandby(self):
 		self.wakeupMessages()

@@ -62,6 +62,15 @@ class HdmiCECSetupScreen(ConfigListScreen, Screen):
 			self.list.append((_("Repeat leave standby messages"), config.hdmicec.repeat_wakeup_timer, _("The command to wake from standby will be sent multiple times.")))
 			self.list.append((_("Send 'sourceactive' before zap timers"), config.hdmicec.sourceactive_zaptimers, _("Command the TV to switch to the correct HDMI input when zap timers activate.")))
 			self.list.append((_("Detect next boxes before standby"), config.hdmicec.next_boxes_detect, _("Before sending the command to switch the TV to standby, the receiver tests if all the other devices plugged to TV are in standby. If they are not, the 'sourceinactive' command will be sent to the TV instead of the 'standby' command.")))
+			if config.hdmicec.next_boxes_detect.value:
+				self.list.append((8 * " " + _("Use ethernet for detect box"), config.hdmicec.ethernet_box1, _("For detection receiver power status will be used ethernet LAN.")))
+				if config.hdmicec.ethernet_box1.value:
+					self.list.append((16 * " " + _("IP"), config.hdmicec.ip1))
+					self.list.append((16 * " " + _("port"), config.hdmicec.port1))
+				self.list.append((8 * " " + _("Use ethernet for detect box"), config.hdmicec.ethernet_box2, _("For detection receiver power status will be used ethernet LAN.")))
+				if config.hdmicec.ethernet_box2.value:
+					self.list.append((16 * " " + _("IP"), config.hdmicec.ip2))
+					self.list.append((16 * " " + _("port"), config.hdmicec.port2))
 			self.list.append((_("Detect PC before standby"), config.hdmicec.ethernet_pc_used, _("Before sending the command to switch the TV to standby, the receiver tests if PC connected to TV is in standby. If it is not, the 'sourceinactive' command will be sent to the TV instead of the 'standby' command.")))
 			if config.hdmicec.ethernet_pc_used.value:
 				self.list.append((8 * " " + _("IP"), config.hdmicec.pc_ip))
